@@ -21,7 +21,7 @@ Usage of ./wolrepeater:
   -dest-port int
     	Port to send WOL packets to. (default 9)
   -listen-addr string
-    	Address to listen for WOL packets on. Required.
+    	Address to listen for WOL packets on. Defaults to all addresses.
   -listen-mac string
     	MAC Address to listen for WOL packets on. Required.
   -listen-port int

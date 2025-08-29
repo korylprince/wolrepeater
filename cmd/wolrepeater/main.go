@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 
 func run() error {
 	// parse flags
-	listenAddrStr := flag.String("listen-addr", "", "Address to listen for WOL packets on. Required.")
+	listenAddrStr := flag.String("listen-addr", "", "Address to listen for WOL packets on. Defaults to all addresses.")
 	listenPort := flag.Int("listen-port", 9, "Port to listen for WOL packets on.")
 	listenMACStr := flag.String("listen-mac", "", "MAC Address to listen for WOL packets on. Required.")
 	destAddrStr := flag.String("dest-addr", "", "Address to send WOL packets to. Required.")
@@ -30,8 +31,6 @@ func run() error {
 		if listenAddr == nil {
 			return fmt.Errorf("could not parse -listen-addr %q as IP", *listenAddrStr)
 		}
-	} else {
-		return errors.New("-listen-addr is required")
 	}
 
 	if *listenPort == 0 {
@@ -88,9 +87,15 @@ func run() error {
 		defer logFile.Close()
 	}
 
-	if listenAddr.Equal(destAddr) && listenPort == destPort {
-		return fmt.Errorf("listener (%s:%d) and destination (%s:%d) will cause a loopback",
-			listenAddr, listenPort, destAddr, destPort)
+	// sanity checks to prevent loopbacks
+	if bytes.Equal(listenMAC, destMAC) {
+		if listenAddr == nil && listenPort == destPort {
+			return fmt.Errorf("listener (*:%d) and destination (%s:%d) will cause a loopback when listen and destination MACs are the same",
+				listenPort, destAddr, destPort)
+		} else if listenAddr.Equal(destAddr) && listenPort == destPort {
+			return fmt.Errorf("listener (%s:%d) and destination (%s:%d) will cause a loopback when listen and destination MACs are the same",
+				listenAddr, listenPort, destAddr, destPort)
+		}
 	}
 
 	// create and run repeater
